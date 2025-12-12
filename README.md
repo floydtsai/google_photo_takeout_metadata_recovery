@@ -1,0 +1,2 @@
+# google_photo_takeout_metadata_recovery
+从Google相册取回的相片的元数据都被剥离出来到json文件中了, 这个python脚本操作exiftool把元数据给恢复进去. 这是我一边学python一边写的, 是我写的第一个python程序, 很可能还有各种问题.
