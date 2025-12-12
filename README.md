@@ -8,6 +8,9 @@
 
 ---
 
+单线程: goometa_recovery.py
+多线程: goometa_recovery_mt.py
+
 ---
 
 ## 🚀 快速开始
@@ -45,7 +48,7 @@ pip install filetype pytz
 # 格式：python 脚本名 <要处理的根目录>
 
 # 示例: 
-python google_takeout_metafix_v2.py /path/to/your/takeout/root/folder
+python goometa_recovery.py /path/to/your/takeout/root/folder
 
 ```
 
