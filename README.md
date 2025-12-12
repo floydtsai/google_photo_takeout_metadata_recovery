@@ -56,7 +56,6 @@ python goometa_recovery.py /path/to/your/takeout/root/folder
 
 ## 💖 贡献与致谢
 
-本项目是我学习 Python 过程中的第一个实际项目，可能仍存在一些问题或改进空间。欢迎任何形式的反馈、Bug 报告或代码贡献！
+本项目是我学习 Python 过程中的第一个项目，可能仍存在一些问题或改进空间。欢迎任何形式的反馈、Bug 报告或代码贡献！
 
-```
-```
+
