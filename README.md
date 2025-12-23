@@ -6,12 +6,6 @@
 
 本工具通过操作著名的 **ExifTool** 程序，将 JSON 文件中的关键元数据读取出来，并准确地恢复（写入）到对应的媒体文件（照片/视频）中。
 
----
-
-单线程: goometa_recovery.py
-多线程: goometa_recovery_mt.py
-
----
 
 ## 🚀 快速开始
 
@@ -48,7 +42,7 @@ pip install filetype pytz
 # 格式：python 脚本名 <要处理的根目录>
 
 # 示例: 
-python goometa_recovery.py /path/to/your/takeout/root/folder
+python google_takeout_metafix_v2_mt.py /path/to/your/takeout/root/folder
 
 ```
 
