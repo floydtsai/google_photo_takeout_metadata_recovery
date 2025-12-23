@@ -17,8 +17,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 local_timezone = pytz.timezone("Asia/Shanghai")
 
 # 文件扩展名
-image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif', '.webp', '.heic', '.heif', '.raw', '.cr2', '.nef', '.arw'}
-video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg', '.3gp', '.mts', '.m2ts'}
+image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif', 
+                    '.webp', '.heic', '.heif', '.raw', '.cr2', '.nef', '.arw'}
+video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', 
+                    '.m4v', '.mpg', '.mpeg', '.3gp', '.mts', '.m2ts'}
 media_extensions = image_extensions | video_extensions
 json_extensions = {'.json'}
 
@@ -29,9 +31,9 @@ def get_file_name_cut(any_str, length=45):
 
 
 # 更新json中的title值, 把title值更新为现在media的full_name
-def update_json_key_title(media_path, json_path):
+def update_json_title(media_path, json_path):
     '''
-    update_json_key_title 的 Docstring
+    update_json_title 的 Docstring
     给定媒体文件路径和对应的 JSON 文件路径，更新 JSON 文件中的 title 字段为媒体文件的完整文件名
     '''
     try:
@@ -98,70 +100,82 @@ def get_media_name_part_cut(media_file):
     media_fullname_cut = get_file_name_cut(media_fullname)  # 获取媒体文件前45个字符，包括扩展名
     media_stem_cut = get_file_name_cut(media_stem)  #  获取媒体文件基名前45个字符
     # 处理去重编号
-    media_dup_suffix = re.search(r"\(\d{1,2}\)$", media_stem)  # 查找文件名末尾的去重编号（如(1), (2)）
-    media_fullname_no_dup_cut = ""
-    media_stem_no_dup_cut = ""
-    if media_dup_suffix:
-        media_dup_suffix = media_dup_suffix.group(0)  # 提取匹配的去重编号字符串
-        media_fullname_no_dup = media_stem[:-len(media_dup_suffix)] + media_ext  # 从完整文件名里去掉去重编号，获取剩余文件名
-        media_stem_no_dup = media_stem[:-len(media_dup_suffix)]  # 从基名里去掉去重编号，获取剩余基名
-        media_fullname_no_dup_cut = get_file_name_cut(media_fullname_no_dup)  #  从上面的文件名里获取前45个字符
-        media_stem_no_dup_cut = get_file_name_cut(media_stem_no_dup)  #  从上面的基名里获取前45个字符
-    return (media_fullname_cut, media_stem_cut, media_dup_suffix, media_fullname_no_dup_cut, media_stem_no_dup_cut)
+    media_dupsuffix = re.search(r"\(\d{1,2}\)$", media_stem)  # 查找文件名末尾的去重编号（如(1), (2)）
+    media_fullname_nodup_cut = ""
+    media_stem_nodup_cut = ""
+    if media_dupsuffix:
+        media_dupsuffix = media_dupsuffix.group(0)  # 提取匹配的去重编号字符串
+        media_fullname_nodup = media_stem[:-len(media_dupsuffix)] + media_ext  # 从完整文件名里去掉去重编号，获取剩余文件名
+        media_stem_nodup = media_stem[:-len(media_dupsuffix)]  # 从基名里去掉去重编号，获取剩余基名
+        media_fullname_nodup_cut = get_file_name_cut(media_fullname_nodup)  #  从上面的文件名里获取前45个字符
+        media_stem_nodup_cut = get_file_name_cut(media_stem_nodup)  #  从上面的基名里获取前45个字符
+    return media_fullname_cut, media_stem_cut, media_dupsuffix, media_fullname_nodup_cut, media_stem_nodup_cut
 
-
-def get_json_media_name_part_cut(json_file):
-    '''
-    get_json_media_name_parts 的 Docstring
-    给定一个 JSON 文件路径, 提取可能的媒体文件名部分及其前45个字符
-    '''
-    json_stem = json_file.stem  # 不带扩展名的文件名
-    json_stem_no_dup = json_stem
-    json_dup_suffix = re.search(r"\(\d{1,2}\)$", json_stem)  # 查找 JSON 文件名末尾的去重编号
-    if json_dup_suffix:
-        json_dup_suffix = json_dup_suffix.group(0)  # 提取匹配的去重编号字符串
-        json_stem_no_dup = json_stem[:-len(json_dup_suffix)]  # 从基名里去掉去重编号，获取剩余基名
-    json_stem_no_dup_parts = json_stem_no_dup.split('.')  # 用"."分割去重后的基名
-    if len(json_stem_no_dup_parts) >= 2 and ("."+json_stem_no_dup_parts[1].lower()) in media_extensions:
-        ext_in_stem = "." + json_stem_no_dup_parts[1]  # 标记扩展名在基名中
-        json_media_name_part = json_stem_no_dup_parts[0] + ext_in_stem  # 可能的媒体文件名部分
-    else:
-        ext_in_stem = None  # 标记扩展名不在基名中
-        json_media_name_part = json_stem_no_dup_parts[0]  # 可能的媒体文件名部分
-    json_media_name_part_cut = get_file_name_cut(json_media_name_part)  # 获取可能的媒体文件名部分的前45个字符  
-    return json_media_name_part_cut, ext_in_stem, json_dup_suffix
+def get_json_stem_nodup(json_file):
+    # 检查该json_file
+    # 有没有去重编号: json_dupsuffix
+    # 基名中是否包含媒体扩展名: ext_in_stem
+    # 同时输出一个没有包含去重编号的基名: json_stem_nodup
+    json_stem = json_file.stem
+    # part.1 检查去重编号
+    # 得到去重编号json_dupsuffix 
+    # 和无论如何都没有了去重编号的json基名json_stem_nodup
+    json_stem_nodup = json_stem
+    json_dupsuffix = re.search(r"\(\d{1,2}\)$", json_stem)  # 查找 JSON 文件名末尾的去重编号
+    if json_dupsuffix:
+        json_dupsuffix = json_dupsuffix.group(0)  # 提取匹配的去重编号字符串
+        json_stem_nodup = json_stem[:-len(json_dupsuffix)]  # 从基名里去掉去重编号，获取剩余基名
+    # part.2 检查基名中可能包含的媒体扩展名
+    for ext in media_extensions:
+        if ext in json_stem:
+            ext_in_stem = ext
+            break
+        else: 
+            ext_in_stem = None
+    return json_stem_nodup, ext_in_stem, json_dupsuffix
 
 
 # 阶段 2: 查找匹配的 JSON 文件
 def find_matching_json(media_file, all_json_files):
-    '''
-    find_matching_json 的 Docstring
-    给定一个media_file, 从all_json_files中寻找匹配的JSON文件
-    依据文件名前45个字符进行匹配, 考虑去重编号的情况
-    '''
-    media_fullname_cut, media_stem_cut, media_dup_suffix, media_fullname_no_dup_cut, media_stem_no_dup_cut = get_media_name_part_cut(media_file)
-    # 1. 当json文件名***含***media_ext
+    # 给定一个media_file, 从all_json_files中寻找匹配的JSON文件
+    # 依据媒体文件名前45个字符进行匹配, 考虑去重编号的情况
+    (media_fullname_cut, media_stem_cut, 
+     media_dupsuffix, 
+     media_fullname_nodup_cut, media_stem_nodup_cut) = get_media_name_part_cut(media_file)
+    # step 1. 循环一遍 all_json_files 把所有含媒体扩展名的json_file先配对
     for json_file in all_json_files:
-        json_media_name_part_cut, ext_in_stem, json_dup_suffix = get_json_media_name_part_cut(json_file)  # 获取可能的媒体文件名部分的前45个字符
-        if media_file.parent == json_file.parent and ext_in_stem:
-            # ***无***去重编号
-            if not json_dup_suffix and (media_fullname_cut == json_media_name_part_cut):
+        json_stem_nodup, ext_in_stem, json_dupsuffix = get_json_stem_nodup(json_file)
+        # 当json基名*含*媒体扩展名
+        if (json_file.parent == media_file.parent
+            and ext_in_stem):
+            # *无*去重编号
+            if (not json_dupsuffix
+                and media_fullname_cut.lower() in json_stem_nodup.lower()):
                 print(f"E1D0.匹配成功: {media_file} <--> {json_file}")
                 return json_file
-            # ***有***去重编号
-            elif media_dup_suffix and json_dup_suffix and (media_dup_suffix == json_dup_suffix) and (media_fullname_no_dup_cut == json_media_name_part_cut):
+            # *有*去重编号
+            elif (json_dupsuffix 
+                  and media_dupsuffix 
+                  and json_dupsuffix == media_dupsuffix 
+                  and media_fullname_nodup_cut.lower() in json_stem_nodup.lower()):
                 print(f"E1D1.匹配成功: {media_file} <--> {json_file}")
                 return json_file 
-    # 2. 当json文件名***不含***media_ext
+    # step 2. 第二遍循环匹配不含媒体扩展名的json_file
     for json_file in all_json_files:
-        json_media_name_part_cut, ext_in_stem, json_dup_suffix = get_json_media_name_part_cut(json_file)  # 获取可能的媒体文件名部分的前45个字符
-        if (media_file.parent == json_file.parent) and not ext_in_stem:
-            # ***无***去重编号
-            if not json_dup_suffix and (media_stem_cut == json_media_name_part_cut):
+        json_stem_nodup, ext_in_stem, json_dupsuffix = get_json_stem_nodup(json_file)
+        # 当json基名*不含*媒体扩展名
+        if (json_file.parent == media_file.parent
+            and not ext_in_stem):
+            # *无*去重编号
+            if (not json_dupsuffix 
+                and media_stem_cut.lower() in json_stem_nodup.lower()):
                 print(f"E0D0.匹配成功: {media_file} <--> {json_file}")
                 return json_file
-            # ***有***去重编号
-            elif media_dup_suffix and json_dup_suffix and (media_dup_suffix == json_dup_suffix) and (media_stem_no_dup_cut == json_media_name_part_cut):
+            # *有*去重编号
+            elif (json_dupsuffix
+                  and media_dupsuffix 
+                  and json_dupsuffix == media_dupsuffix
+                  and media_stem_nodup_cut.lower() in json_stem_nodup.lower()):
                 print(f"E0D1.匹配成功: {media_file} <--> {json_file}")
                 return json_file
     print(f"通过find_matching_json未找到匹配的JSON文件 for {media_file}")
@@ -169,34 +183,29 @@ def find_matching_json(media_file, all_json_files):
 
 
 def live_photo_treat(media_file, matched_pairs):
-    '''
-    live_photo_treat 的 Docstring
-    对于可能是 live photo 类型的媒体文件，从已匹配的同名图片文件中寻找并建立对应的 JSON 文件
-    '''
-    media_fullname = media_file.name  # 带扩展名的完整文件名
-    media_stem = media_file.stem  # 不带扩展名的文件名
-    media_ext = media_file.suffix  # 文件扩展名
-
-    # 判断开始
-    if media_ext.lower() in video_extensions:
-        for ref_media_file in matched_pairs:
-            if (ref_media_file.parent == media_file.parent) and (ref_media_file.suffix.lower() in image_extensions) and media_stem == ref_media_file.stem and matched_pairs[ref_media_file]:
-                    json_fullname = media_fullname + ".json"
-                    json_file = media_file.parent / json_fullname
-                    shutil.copy2(matched_pairs[ref_media_file], json_file)
-                    update_json_key_title(media_file, json_file)
+    # 对于可能是 live photo 类型的媒体文件，从已匹配的同名图片文件中寻找并建立对应的 JSON 文件
+    if media_file.suffix.lower() in video_extensions:
+        for ref_media_file in list(matched_pairs.keys()):
+            if (ref_media_file.parent == media_file.parent
+                and ref_media_file.suffix.lower() in image_extensions
+                and ref_media_file.stem.lower() == media_file.stem.lower()
+                and matched_pairs[ref_media_file]):
+                    new_json_fullname = media_file.name + ".json"
+                    new_json_file = media_file.parent / new_json_fullname
+                    try:
+                        shutil.copy2(matched_pairs[ref_media_file], new_json_file)
+                    except Exception as e:
+                        logging.error(f"[复制失败] 未能复制{matched_pairs[ref_media_file]}为{new_json_file}, 错误: {e}")   
+                    json_file = new_json_file
+                    update_json_title(media_file, json_file)
                     print(f"LP.匹配成功: {media_file} <--> {json_file}")
                     return json_file
-
     print(f"通过live_photo_treat未找到匹配的JSON文件 for {media_file}")
     return None  # 未找到匹配的 JSON 文件
     
 
 def find_matching_pairs(all_media_files, all_json_files):
-    '''
-    find_matching_pairs 的 Docstring
-    匹配媒体文件与 JSON 文件，返回匹配对字典
-    '''
+    # 匹配媒体文件与 JSON 文件，返回匹配对字典
     # 0. 分离图片和视频文件列表
     all_image_files = [f for f in all_media_files if f.suffix.lower() in image_extensions]
     all_video_files = [f for f in all_media_files if f.suffix.lower() in video_extensions]
@@ -221,7 +230,8 @@ def find_matching_pairs(all_media_files, all_json_files):
     # 3. 再处理live photo可疑视频文件的匹配
     print(f"--- 阶段 2.3: 处理live photo可疑video文件的匹配 ---")
     for media_file in list(matched_pairs.keys()):
-        if matched_pairs[media_file] is None and media_file.suffix.lower() in video_extensions:
+        if (matched_pairs[media_file] is None 
+            and media_file.suffix.lower() in video_extensions):
             json_file = live_photo_treat(media_file, matched_pairs)
             if json_file:
                 matched_pairs[media_file] = json_file
@@ -330,7 +340,7 @@ def let_ext_correct(media_file, json_file):
                 logging.error(f"! 重命名文件 {Path(json_file).name} 时出错: {e}")
         # 更新json中的title值
         if json_file:
-            update_json_key_title(media_file, json_file)
+            update_json_title(media_file, json_file)
 
     return media_file, json_file  # 返回更新后的文件路径
 
@@ -424,9 +434,9 @@ def update_media_metadata(media_file, json_file):
         print(f"! 错误: {e}")
 
 
-def update_media_metadata_mp(matched_pairs):
+def update_media_metadata_with_matched_pairs(matched_pairs):
     '''
-    update_media_metadata_with_matched_pairs 的 Docstring
+    update_metadata_of_matched_pairs 的 Docstring
     对匹配对中的媒体文件进行元数据更新
     '''
     for media_file in list(matched_pairs.keys()):
@@ -436,11 +446,7 @@ def update_media_metadata_mp(matched_pairs):
             update_media_metadata(media_file, json_file)
     return matched_pairs
 
-def update_media_metadata_mp_mt(matched_pairs):
-    '''
-    update_media_metadata_with_matched_pairs_with_multi_threading 的 Docstring
-    用多线程对匹配对中的媒体文件进行元数据更新
-    '''
+def update_media_metadata_with_matched_pairs_multi_tasking(matched_pairs):
     tasks = list(matched_pairs.items())
     workers = os.cpu_count() or 8
     with ThreadPoolExecutor(max_workers=workers) as executor: # 例如使用8个线程
@@ -472,8 +478,8 @@ def repair_media_files(directory):
     logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", encoding="utf-8", filemode='a')
     print(f"日志文件: {log_filename}")
 
-    # --- 阶段 1: 寻找媒体文件与配置文件 --- 遍历：扫描所有文件，建立媒体文件和 JSON 文件的初始列表
-    print(f"--- 阶段 1: 寻找媒体文件与配置文件 ---")
+    # --- 阶段 1: 寻找并归类媒体文件与配置文件 --- 遍历：扫描所有文件，建立媒体文件和 JSON 文件的初始列表
+    print(f"--- 阶段 1: 寻找并归类媒体文件与配置文件 ---")
     all_media_files = collect_all_files(directory, media_extensions)
     all_json_files = collect_all_files(directory, json_extensions)      
     all_json_files = set(all_json_files)  # 转为集合以便后续移除已匹配的 JSON 文件      
@@ -484,14 +490,14 @@ def repair_media_files(directory):
     matched_pairs = find_matching_pairs(all_media_files, all_json_files)
     print(f"匹配完成。共匹配到 {len(matched_pairs) - list(matched_pairs.values()).count(None)} 对媒体文件与 JSON 文件。")
     
-    # --- 阶段 3: 更正错误扩展名 ---
-    print(f"--- 阶段 3: 更正错误扩展名 ---")
+    # --- 阶段 3: 更正扩展名 ---
+    print(f"--- 阶段 3: 更正扩展名 ---")
     matched_pairs = correct_ext_of_matched_pairs(matched_pairs)
     print(f"扩展名更正完成。")
     
     # --- 阶段 4: 更新元数据 ---
     print(f"--- 阶段 4: 更新元数据 ---")
-    update_media_metadata_mp_mt(matched_pairs)
+    update_media_metadata_with_matched_pairs_multi_tasking(matched_pairs)
     
     
     print(f"元数据更新完成。")
